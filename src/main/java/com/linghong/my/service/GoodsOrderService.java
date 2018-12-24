@@ -9,9 +9,7 @@ import com.linghong.my.utils.FastDfsUtil;
 import com.linghong.my.utils.IDUtil;
 import com.linghong.my.utils.JwtUtil;
 import com.linghong.my.utils.uupt.UUPTUtil;
-import io.jsonwebtoken.Claims;
 import org.apache.commons.collections.map.HashedMap;
-import org.apache.shiro.authz.UnauthenticatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -103,11 +101,7 @@ public class GoodsOrderService {
     }
 
     public Map<String,Object> settleAccounts(List<ShoppingCart> carts, HttpServletRequest request) {
-        Claims parameter = JwtUtil.getParameterByHttpServletRequest(request);
-        Long userId = (Long) parameter.get("userId");
-        if (userId == null){
-            throw new UnauthenticatedException();
-        }
+        Long userId = JwtUtil.getUserId(request);
         User user = userRepository.findById(userId).get();
         Map<String,Object> result = new HashedMap();
         BigDecimal price = new BigDecimal(0);
@@ -153,6 +147,7 @@ public class GoodsOrderService {
             goodsOrder.setNumber(cart.getNumber());
             goodsOrder.setGoods(cart.getGoods());
             goodsOrder.setCreateTime(new Date());
+            result.put(cart.getGoods().getGoodsId(), goodsOrder);
         }
         //相同商家配送费合一
         Map<Seller, List<ShoppingCart>> collect = carts.stream().collect(Collectors.groupingBy(cart -> {
@@ -161,9 +156,11 @@ public class GoodsOrderService {
         BigDecimal expressPrice = new BigDecimal(0);
         for (Map.Entry<Seller,List<ShoppingCart>> entry : collect.entrySet()){
             //TODO 获取UU跑腿订单价格
-            //UUPTUtil.getOrderPrice(, , , , , , , )
-            //todo  uu跑腿下单
-            //expressPrice = expressPrice.add()
+            JSONObject jsonObject = UUPTUtil.getOrderPrice(IDUtil.getId(),
+                    entry.getValue().get(0).getGoods().getSeller().getAddress(), entry.getValue().get(0).getAddress().getExpressAddress(),
+                    entry.getValue().get(0).getGoods().getSeller().getCity() + "市", uuptOpenId, uuptAppId, uuptAppKey);
+            //累加跑腿费
+            expressPrice = expressPrice.add(new BigDecimal((String) jsonObject.get("need_paymoney")));
         }
         result.put("配送费",expressPrice );
         result.put("总价",price.add(expressPrice) );
@@ -198,6 +195,9 @@ public class GoodsOrderService {
 
     public boolean cancelOrder(String goodsOrderId) {
         GoodsOrder goodsOrder = goodsOrderRepository.findById(goodsOrderId).get();
+        if (goodsOrder.getStatus().intValue() >= 2){
+            return false;
+        }
         goodsOrder.setStatus(6);
         //修改redis中缓存的状态
         List<Object> objects = redisService.lGet(goodsOrder.getRedisId(), 0, -1);
@@ -242,8 +242,7 @@ public class GoodsOrderService {
                                 DiscussMessage discussMessage,
                                 String base64Images) {
         GoodsOrder goodsOrder = goodsOrderRepository.findById(orderId).get();
-        discussMessage.setFormUser(goodsOrder.getUser());
-        discussMessage.setToSeller(goodsOrder.getGoods().getSeller());
+        discussMessage.setFromUser(goodsOrder.getUser());
         discussMessage.setCreateTime(new Date());
         if (base64Images != null){
             Set<Image> images = new HashSet<>();

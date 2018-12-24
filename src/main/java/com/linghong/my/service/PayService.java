@@ -113,8 +113,13 @@ public class PayService {
     }
 
 
-    public List<Bill> getBills(Long userId) {
+    public List<Bill> getBillsByUserId(Long userId) {
         return billRepository.findAllByUser_UserId(userId);
+    }
+
+
+    public List<Bill> getBillsBySellerId(Long sellerId) {
+        return billRepository.findAllBySeller_SellerId(sellerId);
     }
 
     public Bill getDetailBill(Long billId) {
@@ -481,7 +486,6 @@ public class PayService {
         BigDecimal expressPrice = new BigDecimal(0);
         for (Map.Entry<Seller,List<GoodsOrder>> entry : collect.entrySet()){
             //TODO 获取UU跑腿订单价格
-            //TODO 获取UU跑腿订单价格
             JSONObject jsonObject = UUPTUtil.getOrderPrice(entry.getValue().get(0).getGoodsOrderId(),
                     entry.getValue().get(0).getGoods().getSeller().getAddress(), entry.getValue().get(0).getAddress().getExpressAddress(),
                     entry.getValue().get(0).getGoods().getSeller().getCity() + "市", uuptOpenId, uuptAppId, uuptAppKey);
@@ -492,4 +496,5 @@ public class PayService {
             UUPTUtil.pushOrder((String) jsonObject.get("price_token"), (String) jsonObject.get("total_money"), (String) jsonObject.get("need_paymoney"), entry.getValue().get(0).getAddress().getReceiver(), entry.getValue().get(0).getAddress().getReceiver(), "请快速派送", "13592589109", uuptOpenId, uuptAppId, uuptAppKey, null);
         }
     }
+
 }

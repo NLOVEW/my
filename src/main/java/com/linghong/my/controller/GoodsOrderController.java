@@ -63,7 +63,7 @@ public class GoodsOrderController {
     }
 
     /**
-     * 进行结算
+     * 进行结算  在进行结算前  请获取收货地址  封装到  ShoppingCart 中
      * 接收json格式
      * @param carts
      * @return
@@ -132,7 +132,7 @@ public class GoodsOrderController {
         if (flag){
             return new Response(true,200,null ,"操作成功" );
         }
-        return new Response(false,101,null ,"操作失败" );
+        return new Response(false,101,null ,"已派送无法取消" );
     }
 
     /**

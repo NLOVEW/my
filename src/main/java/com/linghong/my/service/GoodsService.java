@@ -6,6 +6,7 @@ import com.linghong.my.pojo.*;
 import com.linghong.my.repository.*;
 import com.linghong.my.utils.BeanUtil;
 import com.linghong.my.utils.FastDfsUtil;
+import com.linghong.my.utils.JwtUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.criteria.Predicate;
+import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,8 +39,13 @@ public class GoodsService {
     private CouponRepository couponRepository;
     @Resource
     private CollectionRepository collectionRepository;
+    @Resource
+    private DiscussMessageRepository discussMessageRepository;
+    @Resource
+    private ImageRepository imageRepository;
 
-    public boolean pushGoods(Long sellerId, Goods goods, String baseImages) {
+    public boolean pushGoods(Goods goods, String baseImages, HttpServletRequest request) {
+        Long sellerId = JwtUtil.getSellerId(request);
         Seller seller = sellerRepository.findById(sellerId).get();
         goods.setSeller(seller);
         if (StringUtils.isNotEmpty(baseImages)){
@@ -60,7 +67,9 @@ public class GoodsService {
         logger.info("修改前：{}",target);
         BeanUtil.copyPropertiesIgnoreNull(goods, target);
         if (StringUtils.isNotEmpty(baseImages)){
-            Set<Image> images = new HashSet<>();
+            Set<Image> images = target.getImages();
+            imageRepository.deleteAll(images);
+            images = new HashSet<>();
             String[] split = baseImages.split("。");
             for (String base64 : split){
                 Image image = new Image();
@@ -128,7 +137,15 @@ public class GoodsService {
                 }
             }
         });
+        List<GoodsOrder> goodsOrders = goodsOrderRepository.findAllByGoods_GoodsId(goodsId);
+        List<Set<DiscussMessage>> discussMessages = new ArrayList<>();
+        for (GoodsOrder goodsOrder : goodsOrders){
+            if (goodsOrder.getDiscussMessages() != null && goodsOrder.getDiscussMessages().size() > 0){
+                discussMessages.add(goodsOrder.getDiscussMessages());
+            }
+        }
         result.put("商品信息",goods );
+        result.put("评论", discussMessages);
         return result;
     }
 

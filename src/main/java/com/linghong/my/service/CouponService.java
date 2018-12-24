@@ -6,12 +6,15 @@ import com.linghong.my.pojo.Seller;
 import com.linghong.my.repository.CouponRepository;
 import com.linghong.my.repository.GoodsRepository;
 import com.linghong.my.repository.SellerRepository;
+import com.linghong.my.utils.JwtUtil;
 import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.transaction.Transactional;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +27,7 @@ import java.util.stream.Collectors;
  * @Description:
  */
 @Service
+@Transactional(rollbackOn = Exception.class)
 public class CouponService {
     private Logger logger = LoggerFactory.getLogger(getClass());
     @Resource
@@ -34,10 +38,12 @@ public class CouponService {
     private SellerRepository sellerRepository;
 
 
-    public boolean pushCoupon(Long sellerId, Coupon coupon) {
+    public boolean pushCoupon(Coupon coupon, HttpServletRequest request) {
+        Long sellerId = JwtUtil.getSellerId(request);
         Seller seller = sellerRepository.findById(sellerId).get();
         coupon.setSeller(seller);
         coupon.setCreateTime(new Date());
+        logger.info("添加优惠券信息：{}",coupon);
         couponRepository.save(coupon);
         return true;
     }

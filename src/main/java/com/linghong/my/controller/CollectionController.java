@@ -6,6 +6,7 @@ import com.linghong.my.service.CollectionService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * @Auther: luck_nhb
@@ -22,14 +23,14 @@ public class CollectionController {
      * 添加关注或者收藏
      * @param sellerId
      * @param goodsId
-     * @param userId
+     * @param request
      * @return
      */
     @PostMapping("/collection/addCollection")
     public Response addCollection(@RequestParam(required = false) Long sellerId,
                                   @RequestParam(required = false) String goodsId,
-                                  Long userId) {
-        boolean flag = collectionService.addCollection(sellerId,goodsId,userId);
+                                  HttpServletRequest request) {
+        boolean flag = collectionService.addCollection(sellerId,goodsId,request);
         if (flag){
             return new Response(true, 200, null, "操作成功");
         }
@@ -40,14 +41,14 @@ public class CollectionController {
      * 删除关注或者收藏
      * @param sellerId
      * @param goodsId
-     * @param userId
+     * @param request
      * @return
      */
     @PostMapping("/collection/cancelCollection")
     public Response cancelCollection(@RequestParam(required = false) Long sellerId,
                                      @RequestParam(required = false) String goodsId,
-                                     Long userId){
-        boolean flag = collectionService.cancelCollection(sellerId,goodsId,userId);
+                                     HttpServletRequest request){
+        boolean flag = collectionService.cancelCollection(sellerId,goodsId,request);
         if (flag){
             return new Response(true, 200, null, "操作成功");
         }

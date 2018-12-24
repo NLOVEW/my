@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface BillRepository extends JpaRepository<Bill,Long> {
     List<Bill> findAllByUser_UserId(@Param("userId") Long userId);
+    List<Bill> findAllBySeller_SellerId(@Param("sellerId") Long sellerId);
 }

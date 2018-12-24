@@ -134,9 +134,23 @@ public class ShiroConfig {
         Map<String, String> urls = new LinkedHashMap<>(16);
         //拦截任何
         urls.put("/user/updateUserMessage", "authc");
-        urls.put("/user/updatePassword", "authc");
         urls.put("/user/uploadIdCard", "authc");
+        urls.put("/user/uploadAvatar", "authc");
         urls.put("/user/findUserByUserId/*", "authc");
+        urls.put("/seller/updateSellerMessage", "authc");
+        urls.put("/seller/uploadIdCard", "authc");
+        urls.put("/seller/updateBusinessMessage", "authc");
+        urls.put("/seller/getCurrentSeller", "authc");
+        urls.put("/address/*", "authc");
+        urls.put("/messageBack/pushMessageBack", "authc");
+        urls.put("/collection/*", "authc");
+        urls.put("/coupon/pushCoupon", "authc");
+        urls.put("/goods/pushGoods", "authc");
+        urls.put("/goods/updateGoods", "authc");
+        urls.put("/goods/deleteGoods/*", "authc");
+        urls.put("/goods/obtainedGoods/*", "authc");
+        urls.put("/order/*", "authc");
+        urls.put("/pay/*", "authc");
         shiro.setFilterChainDefinitionMap(urls);
         return shiro;
     }

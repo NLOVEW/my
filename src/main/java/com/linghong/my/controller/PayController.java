@@ -33,9 +33,21 @@ public class PayController {
      * @param userId
      * @return
      */
-    @GetMapping("/pay/getBills/{userId}")
-    public Response getBills(@PathVariable Long userId) {
-        List<Bill> bills = payService.getBills(userId);
+    @GetMapping("/pay/getBillsByUserId/{userId}")
+    public Response getBillsByUserId(@PathVariable Long userId) {
+        List<Bill> bills = payService.getBillsByUserId(userId);
+        return new Response(true, 200, bills, "查询结果");
+    }
+
+    /**
+     * sellerId 查询其所有账单
+     *
+     * @param sellerId
+     * @return
+     */
+    @GetMapping("/pay/getBillsBySellerId/{sellerId}")
+    public Response getBillsBySellerId(@PathVariable Long sellerId) {
+        List<Bill> bills = payService.getBillsBySellerId(sellerId);
         return new Response(true, 200, bills, "查询结果");
     }
 
@@ -161,6 +173,7 @@ public class PayController {
         return payService.wxPay(orderId, price,  request);
     }
 
+    @RequestMapping("/pay/wxPayCallBack")
     public Response wxPayCallBack(HttpServletRequest request) {
         boolean flag = payService.wxPayCallBack(request);
         if (flag) {

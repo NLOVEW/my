@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -26,13 +27,13 @@ public class CouponController {
     /**
      * 商家发布优惠信息
      * 参数： startTime  endTime requirementPrice  subPrice goodsIds(数组 值为商品id)
-     * @param sellerId
+     * @param request
      * @param coupon
      * @return
      */
     @PostMapping("/coupon/pushCoupon")
-    public Response pushCoupon(Long sellerId,Coupon coupon){
-        boolean flag = couponService.pushCoupon(sellerId,coupon);
+    public Response pushCoupon(Coupon coupon, HttpServletRequest request){
+        boolean flag = couponService.pushCoupon(coupon,request);
         if (flag){
             return new Response(true,200 ,null ,"添加成功" );
         }

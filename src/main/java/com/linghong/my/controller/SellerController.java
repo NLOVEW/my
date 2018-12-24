@@ -7,6 +7,7 @@ import com.linghong.my.utils.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +33,6 @@ public class SellerController {
         seller = sellerService.register(seller);
         if (seller != null){
             Map<String,Object> map = new HashMap<>();
-            map.put("mobilePhone", seller.getMobilePhone());
             map.put("sellerId", seller.getSellerId());
             String jwt = JwtUtil.createJWT(map);
             return new Response(true,200 ,jwt ,"token" );
@@ -51,7 +51,6 @@ public class SellerController {
         seller = sellerService.login(seller);
         if (seller != null){
             Map<String,Object> map = new HashMap<>();
-            map.put("mobilePhone", seller.getMobilePhone());
             map.put("sellerId", seller.getSellerId());
             String jwt = JwtUtil.createJWT(map);
             return new Response(true,200 ,jwt ,"token" );
@@ -61,13 +60,13 @@ public class SellerController {
 
     /**
      * 完善店铺信息
-     * 参数 ： sellerId  sellerName  startTime  endTime companyType businessStatus
+     * 参数 ：sellerName  startTime  endTime companyType businessStatus
      * @param seller
      * @return
      */
     @PostMapping("/seller/updateSellerMessage")
-    public Response updateSellerMessage(Seller seller,String base64Avatar){
-        boolean flag = sellerService.updateSellerMessage(seller,base64Avatar);
+    public Response updateSellerMessage(Seller seller, String base64Avatar, HttpServletRequest request){
+        boolean flag = sellerService.updateSellerMessage(seller,base64Avatar,request);
         if (flag){
             return new Response(true,200 ,null , "更新完成");
         }
@@ -76,13 +75,13 @@ public class SellerController {
 
     /**
      * 更新 密码
-     * @param sellerId
+     * @param mobilePhone
      * @param password
      * @return
      */
     @PostMapping("/seller/updatePassword")
-    public Response updatePassword(Long sellerId,String password){
-        boolean flag = sellerService.updatePassword(sellerId,password);
+    public Response updatePassword(String mobilePhone,String password){
+        boolean flag = sellerService.updatePassword(mobilePhone,password);
         if (flag){
             return new Response(true, 200, null,"更新完成" );
         }
@@ -91,16 +90,16 @@ public class SellerController {
 
     /**
      * 上传身份证号 身份证照片一张
-     * @param sellerId
+     * @param request
      * @param base64IdCard
      * @param idCardNumber
      * @return
      */
     @PostMapping("/seller/uploadIdCard")
-    public Response uploadIdCard(Long sellerId,
-                                 @RequestParam(required = false) String base64IdCard,
-                                 @RequestParam(required = false) String idCardNumber){
-        boolean flag = sellerService.uploadIdCard(sellerId,base64IdCard,idCardNumber);
+    public Response uploadIdCard(@RequestParam(required = false) String base64IdCard,
+                                 @RequestParam(required = false) String idCardNumber,
+                                 HttpServletRequest request){
+        boolean flag = sellerService.uploadIdCard(base64IdCard,idCardNumber,request);
         if (flag){
             return new Response(true,200 ,null ,"完善成功" );
         }
@@ -115,11 +114,11 @@ public class SellerController {
      * @return
      */
     @PostMapping("/seller/updateBusinessMessage")
-    public Response updateBusinessMessage(Long sellerId,
-                                          @RequestParam(required = false) String businessImage,
+    public Response updateBusinessMessage(@RequestParam(required = false) String businessImage,
                                           @RequestParam(required = false) String businessLicense,
-                                          @RequestParam(required = false) String base64IdCard){
-        boolean flag = sellerService.updateBusinessMessage(sellerId,businessImage,businessLicense,base64IdCard);
+                                          @RequestParam(required = false) String base64IdCard,
+                                          HttpServletRequest request){
+        boolean flag = sellerService.updateBusinessMessage(businessImage,businessLicense,base64IdCard,request);
         if (flag){
             return new Response(true,200 ,null ,"完善成功" );
         }
@@ -133,6 +132,16 @@ public class SellerController {
      */
     @GetMapping("/seller/findSellerBySellerId/{sellerId}")
     public Response findSellerBySellerId(@PathVariable Long sellerId){
+        Seller seller = sellerService.findSellerBySellerId(sellerId);
+        if (seller != null){
+            return new Response(true,200 ,seller ,"查询结果" );
+        }
+        return new Response(false,101 ,null ,"无此用户" );
+    }
+
+    @GetMapping("/seller/getCurrentSeller")
+    public Response getCurrentSeller(HttpServletRequest request){
+        Long sellerId = JwtUtil.getSellerId(request);
         Seller seller = sellerService.findSellerBySellerId(sellerId);
         if (seller != null){
             return new Response(true,200 ,seller ,"查询结果" );

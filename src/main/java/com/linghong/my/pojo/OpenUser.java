@@ -1,5 +1,7 @@
 package com.linghong.my.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
@@ -17,9 +19,12 @@ import java.io.Serializable;
 @Table(name = "open_user")
 public class OpenUser implements Serializable {
     private Long openUserId;
+    @JsonIgnore
     private String openId;
     private Integer openType;//登录方式  0代表QQ 1代表微信 3代表微博
+    @JsonIgnore
     private String accessToken;//调用接口需要用到的token
+    @JsonIgnore
     private String expiredTime;//授权过期时间
     private String nickName;//昵称
     private String avatar;//头像

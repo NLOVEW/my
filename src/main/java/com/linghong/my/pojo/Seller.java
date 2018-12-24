@@ -25,7 +25,7 @@ public class Seller implements Serializable {
     private String idCardPath;
     private String sellerName;//商家店铺名
     private String businessImage;//店铺照片
-    private String businessLicense;//公司营业执照
+    private String businessLicense;//营业执照
     private String city;//所在城市 必填
     private String address;//详细地址
     private String companyType;//公司类型

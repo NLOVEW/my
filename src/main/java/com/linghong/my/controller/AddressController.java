@@ -6,6 +6,7 @@ import com.linghong.my.service.AddressService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -21,15 +22,15 @@ public class AddressController {
     // fixme 切记收货地址不可修改  只可删除  添加
     /**
      * 用户添加收货地址
-     * 参数  当前用户userId  receiver 收货人  receiverPhone 收货人手机号
+     * 参数 receiver 收货人  receiverPhone 收货人手机号
      *                      expressAddress 快递目的地址
-     * @param userId
+     * @param request
      * @param address
      * @return
      */
     @PostMapping("/address/addAddress")
-    public Response addAddress(Long userId, Address address){
-        boolean flag = addressService.addAddress(userId,address);
+    public Response addAddress(Address address, HttpServletRequest request){
+        boolean flag = addressService.addAddress(address,request);
         if (flag){
             return new Response(true,200 ,null ,"添加成功" );
         }

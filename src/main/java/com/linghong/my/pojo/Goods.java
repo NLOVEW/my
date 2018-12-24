@@ -38,6 +38,8 @@ public class Goods implements Serializable {
         this.goodsId = goodsId;
     }
 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "sellerId")
     public Seller getSeller() {
         return seller;
     }

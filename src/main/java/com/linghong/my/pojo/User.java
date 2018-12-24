@@ -1,5 +1,7 @@
 package com.linghong.my.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Date;
@@ -15,6 +17,7 @@ import java.util.Date;
 public class User implements Serializable {
     private Long userId;
     private String mobilePhone;
+    @JsonIgnore
     private String password;
     private String nickName;//昵称
     private String userName;//

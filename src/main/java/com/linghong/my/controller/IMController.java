@@ -7,7 +7,6 @@ import com.linghong.my.bean.SendMsg;
 import com.linghong.my.pojo.User;
 import com.linghong.my.repository.UserRepository;
 import com.linghong.my.service.IMServiceImpl;
-import io.swagger.annotations.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -22,7 +21,6 @@ import java.util.*;
 @RestController
 @ResponseBody
 @Scope("prototype")
-@Api(tags = {"即时通信接口   可以问另外前端要  有现成的页面"})
 public class IMController {
     private Logger logger = LoggerFactory.getLogger(getClass());
 

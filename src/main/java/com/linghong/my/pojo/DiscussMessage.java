@@ -15,10 +15,7 @@ import java.util.Set;
 @Table(name = "discuss_message")
 public class DiscussMessage implements Serializable {
     private Long discussMessageId;
-    private Seller formSeller;
-    private User formUser;
-    private Seller toSeller;
-    private User toUser;
+    private User fromUser;
     private String message;
     private Set<Image> images;
     private Date createTime;
@@ -34,45 +31,14 @@ public class DiscussMessage implements Serializable {
     }
 
     @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "formSellerId")
-    public Seller getFormSeller() {
-        return formSeller;
+    @JoinColumn(name = "fromUserId")
+    public User getFromUser() {
+        return fromUser;
     }
 
-    public void setFormSeller(Seller formSeller) {
-        this.formSeller = formSeller;
+    public void setFromUser(User fromUser) {
+        this.fromUser = fromUser;
     }
-
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "formUserId")
-    public User getFormUser() {
-        return formUser;
-    }
-
-    public void setFormUser(User formUser) {
-        this.formUser = formUser;
-    }
-
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "toSellerId")
-    public Seller getToSeller() {
-        return toSeller;
-    }
-
-    public void setToSeller(Seller toSeller) {
-        this.toSeller = toSeller;
-    }
-
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "toUserId")
-    public User getToUser() {
-        return toUser;
-    }
-
-    public void setToUser(User toUser) {
-        this.toUser = toUser;
-    }
-
     public String getMessage() {
         return message;
     }
@@ -103,10 +69,7 @@ public class DiscussMessage implements Serializable {
     public String toString() {
         return "DiscussMessage{" +
                 "discussMessageId=" + discussMessageId +
-                ", formSeller=" + formSeller +
-                ", formUser=" + formUser +
-                ", toSeller=" + toSeller +
-                ", toUser=" + toUser +
+                ", fromUser=" + fromUser +
                 ", message='" + message + '\'' +
                 ", images=" + images +
                 ", createTime=" + createTime +

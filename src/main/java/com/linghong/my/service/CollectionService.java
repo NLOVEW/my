@@ -8,11 +8,14 @@ import com.linghong.my.repository.CollectionRepository;
 import com.linghong.my.repository.GoodsRepository;
 import com.linghong.my.repository.SellerRepository;
 import com.linghong.my.repository.UserRepository;
+import com.linghong.my.utils.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.transaction.Transactional;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,6 +26,7 @@ import java.util.Set;
  * @Description:
  */
 @Service
+@Transactional(rollbackOn = Exception.class)
 public class CollectionService {
     private Logger logger = LoggerFactory.getLogger(getClass());
     @Resource
@@ -34,7 +38,8 @@ public class CollectionService {
     @Resource
     private SellerRepository sellerRepository;
 
-    public boolean addCollection(Long sellerId, String goodsId, Long userId) {
+    public boolean addCollection(Long sellerId, String goodsId, HttpServletRequest request) {
+        Long userId = JwtUtil.getUserId(request);
         Collection collection = collectionRepository.findByUser_UserId(userId);
         if (collection == null){
             User user = userRepository.findById(userId).get();
@@ -62,7 +67,8 @@ public class CollectionService {
         return true;
     }
 
-    public boolean cancelCollection(Long sellerId, String goodsId, Long userId) {
+    public boolean cancelCollection(Long sellerId, String goodsId, HttpServletRequest request) {
+        Long userId = JwtUtil.getUserId(request);
         Collection collection = collectionRepository.findByUser_UserId(userId);
         Seller seller = null;
         Goods goods = null;

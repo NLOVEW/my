@@ -6,6 +6,7 @@ import com.linghong.my.service.GoodsService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -22,17 +23,17 @@ public class GoodsController {
 
     /**
      * 商铺添加商品
-     * 参数 sellerId title goodsType price introduce  baseImages
-     * @param sellerId
+     * 参数title goodsType price introduce  baseImages
+     * @param request
      * @param goods
      * @param baseImages
      * @return
      */
     @PostMapping("/goods/pushGoods")
-    public Response pushGoods(Long sellerId,
-                              Goods goods,
-                              String baseImages){
-        boolean flag = goodsService.pushGoods(sellerId,goods,baseImages);
+    public Response pushGoods(Goods goods,
+                              String baseImages,
+                              HttpServletRequest request){
+        boolean flag = goodsService.pushGoods(goods,baseImages,request);
         if (flag){
             return new Response(true,200 ,null ,"添加成功" );
         }
@@ -47,7 +48,8 @@ public class GoodsController {
      * @return
      */
     @PostMapping("/goods/updateGoods")
-    public Response updateGoods(Goods goods ,String baseImages){
+    public Response updateGoods(Goods goods ,
+                                @RequestParam(required = false) String baseImages){
         boolean flag = goodsService.updateGoods(goods,baseImages);
         if (flag){
             return new Response(true,200 ,null ,"修改成功" );

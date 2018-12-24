@@ -4,11 +4,13 @@ import com.linghong.my.pojo.Address;
 import com.linghong.my.pojo.User;
 import com.linghong.my.repository.AddressRepository;
 import com.linghong.my.repository.UserRepository;
+import com.linghong.my.utils.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,7 +29,8 @@ public class AddressService {
     @Resource
     private UserRepository userRepository;
 
-    public boolean addAddress(Long userId, Address address) {
+    public boolean addAddress(Address address, HttpServletRequest request) {
+        Long userId = JwtUtil.getUserId(request);
         User user = userRepository.findById(userId).get();
         address.setUser(user);
         address.setCreateTime(new Date());

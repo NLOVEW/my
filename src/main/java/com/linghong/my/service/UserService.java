@@ -5,10 +5,8 @@ import com.linghong.my.constant.UrlConstant;
 import com.linghong.my.pojo.User;
 import com.linghong.my.pojo.Wallet;
 import com.linghong.my.repository.UserRepository;
-import com.linghong.my.utils.BeanUtil;
-import com.linghong.my.utils.FastDfsUtil;
-import com.linghong.my.utils.IDUtil;
-import com.linghong.my.utils.IdCardUtil;
+import com.linghong.my.repository.WalletRepository;
+import com.linghong.my.utils.*;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.UsernamePasswordToken;
@@ -20,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -30,12 +30,15 @@ import java.util.Date;
  * @Description:
  */
 @Service
+@Transactional(rollbackOn = Exception.class)
 public class UserService {
     private Logger logger = LoggerFactory.getLogger(getClass());
     @Resource
     private UserRepository userRepository;
     @Resource
     private IMServiceImpl imServiceImpl;
+    @Resource
+    private WalletRepository walletRepository;
 
     public User register(User user) {
         User secondUser = userRepository.findByMobilePhone(user.getMobilePhone());
@@ -46,13 +49,13 @@ public class UserService {
             String md5 = new SimpleHash("MD5", user.getPassword(), salt, 2).toHex();
             user.setPassword(md5);
             user.setCreateTime(new Date());
+            user = userRepository.save(user);
             Wallet wallet = new Wallet();
             wallet.setUser(user);
             wallet.setCreateTime(new Date());
             wallet.setWalletId(IDUtil.getId());
             wallet.setBalance(new BigDecimal(0));
-            user = userRepository.save(user);
-
+            walletRepository.save(wallet);
             //注册即时通信
             String mobilePhone = user.getMobilePhone();
             new Thread(() -> {
@@ -92,27 +95,30 @@ public class UserService {
         return user;
     }
 
-    public boolean updateUserMessage(User user) {
-        User target = userRepository.findById(user.getUserId()).get();
+    public boolean updateUserMessage(User user, HttpServletRequest request) {
+        Long userId = JwtUtil.getUserId(request);
+        User target = userRepository.findById(userId).get();
         BeanUtil.copyPropertiesIgnoreNull(user,target);
         return true;
     }
 
-    public boolean uploadAvatar(Long userId, String base64Avatar) {
+    public boolean uploadAvatar(String base64Avatar, HttpServletRequest request) {
+        Long userId = JwtUtil.getUserId(request);
         User user = userRepository.findById(userId).get();
         user.setAvatar(UrlConstant.IMAGE_URL+new FastDfsUtil().uploadBase64Image(base64Avatar));
         return true;
     }
 
-    public boolean updatePassword(Long userId, String password) {
-        User user = userRepository.findById(userId).get();
+    public boolean updatePassword(String mobilePhone, String password) {
+        User user = userRepository.findByMobilePhone(mobilePhone);
         ByteSource salt = ByteSource.Util.bytes(user.getMobilePhone());
         String md5 = new SimpleHash("MD5", password, salt, 2).toHex();
         user.setPassword(md5);
         return true;
     }
 
-    public boolean uploadIdCard(Long userId, String base64IdCard, String idCardNumber) {
+    public boolean uploadIdCard(String base64IdCard, String idCardNumber,HttpServletRequest request) {
+        Long userId = JwtUtil.getUserId(request);
         User user = userRepository.findById(userId).get();
         if (idCardNumber != null){
             boolean flag = IdCardUtil.idCardValidate(idCardNumber);
