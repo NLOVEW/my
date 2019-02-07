@@ -19,7 +19,22 @@ public class Address implements Serializable {
     private String receiverPhone;//收货人手机号
     private String expressAddress;//快递目的地址
     private Boolean userful;//是否可用
+    private Boolean def;//是否为默认
     private Date createTime;
+
+    public Address() {
+    }
+
+    public Address(Long addressId, User user, String receiver, String receiverPhone, String expressAddress, Boolean userful, Boolean def, Date createTime) {
+        this.addressId = addressId;
+        this.user = user;
+        this.receiver = receiver;
+        this.receiverPhone = receiverPhone;
+        this.expressAddress = expressAddress;
+        this.userful = userful;
+        this.def = def;
+        this.createTime = createTime;
+    }
 
     @Id
     @GeneratedValue
@@ -79,5 +94,27 @@ public class Address implements Serializable {
 
     public void setUserful(Boolean userful) {
         this.userful = userful;
+    }
+
+    public Boolean getDef() {
+        return def;
+    }
+
+    public void setDef(Boolean def) {
+        this.def = def;
+    }
+
+    @Override
+    public String toString() {
+        return "Address{" +
+                "addressId=" + addressId +
+                ", user=" + user +
+                ", receiver='" + receiver + '\'' +
+                ", receiverPhone='" + receiverPhone + '\'' +
+                ", expressAddress='" + expressAddress + '\'' +
+                ", userful=" + userful +
+                ", def=" + def +
+                ", createTime=" + createTime +
+                '}';
     }
 }

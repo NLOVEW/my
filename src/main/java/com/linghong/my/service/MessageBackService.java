@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.transaction.Transactional;
 
 /**
  * @Auther: luck_nhb
@@ -19,6 +20,7 @@ import javax.annotation.Resource;
  */
 
 @Service
+@Transactional(rollbackOn = Exception.class)
 public class MessageBackService {
     private Logger logger = LoggerFactory.getLogger(getClass());
     @Resource

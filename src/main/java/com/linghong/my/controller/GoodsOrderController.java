@@ -47,7 +47,7 @@ public class GoodsOrderController {
      */
     @PostMapping("/order/cancelShoppingCart")
     public Response cancelShoppingCart(Long userId,String[] goodsIds){
-        List<Object> result = goodsOrderService.cancelShoppingCart(userId,goodsIds);
+        List<ShoppingCart> result = goodsOrderService.cancelShoppingCart(userId,goodsIds);
         return new Response(true,200,result ,"查询结果" );
     }
 
@@ -58,7 +58,7 @@ public class GoodsOrderController {
      */
     @GetMapping("/order/getShoppingCartByUserId/{userId}")
     public Response getShoppingCartByUserId(@PathVariable Long userId){
-        List<Object> result = goodsOrderService.getShoppingCartByUserId(userId);
+        List<ShoppingCart> result = goodsOrderService.getShoppingCartByUserId(userId);
         return new Response(true,200,result ,"查询结果" );
     }
 
@@ -75,14 +75,24 @@ public class GoodsOrderController {
     }
 
     /**
+     * 修改地址的时候使用  进行重新计算价格   配送费
+     * @return
+     */
+    @PostMapping("/order/updateSettleAccounts")
+    public Response updateSettleAccounts(Long addressId,String[] goodsIds){
+        Map<String,Object> result = goodsOrderService.updateSettleAccounts(addressId,goodsIds);
+        return new Response(true,200 , result, "计算结果");
+    }
+
+    /**
      * 提交订单
-     * @param goodsOrders
+     * @param goodsOrdersIds
      * @param
      * @return
      */
     @PostMapping("/order/submitOrder")
-    public Response submitOrder(@RequestBody List<GoodsOrder> goodsOrders){
-        String orderId = goodsOrderService.submitOrder(goodsOrders);
+    public Response submitOrder(String[] goodsOrdersIds,String comment){
+        String orderId = goodsOrderService.submitOrder(goodsOrdersIds,comment);
         return new Response(true,200 , orderId, "订单Id");
     }
 
@@ -177,5 +187,10 @@ public class GoodsOrderController {
             return new Response(true,200,null ,"操作成功" );
         }
         return new Response(false,101,null ,"操作失败" );
+    }
+
+    @GetMapping("/test/json")
+    public List<ShoppingCart> testJson(){
+        return goodsOrderService.testJson();
     }
 }

@@ -91,6 +91,7 @@ public class UserService {
     }
 
     public User findUserByUserId(Long userId) {
+        logger.info("userId:{}",userId);
         User user = userRepository.findById(userId).get();
         return user;
     }

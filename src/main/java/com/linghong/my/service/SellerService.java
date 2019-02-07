@@ -93,17 +93,18 @@ public class SellerService {
 
     public Seller findSellerBySellerId(Long sellerId) {
         Seller seller = sellerRepository.findById(sellerId).get();
-        if (seller.getStartTime().compareTo(new Date()) <= 0 && seller.getEndTime().compareTo(new Date()) >= 0){
-            seller.setBusinessStatus(true);
-        }else {
-            seller.setBusinessStatus(false);
-        }
+//        if (seller.getStartTime().compareTo(new Date()) <= 0 && seller.getEndTime().compareTo(new Date()) >= 0){
+//            seller.setBusinessStatus(true);
+//        }else {
+//            seller.setBusinessStatus(false);
+//        }
         return seller;
     }
 
     public boolean updateSellerMessage(Seller seller, String base64, HttpServletRequest request) {
         Long sellerId = JwtUtil.getSellerId(request);
         Seller target = sellerRepository.findById(sellerId).get();
+        target.setAuth(true);
         BeanUtil.copyPropertiesIgnoreNull(seller, target);
         if (base64 != null){
             target.setAvatar(UrlConstant.IMAGE_URL+new FastDfsUtil().uploadBase64Image(base64));
@@ -112,7 +113,9 @@ public class SellerService {
     }
 
     public boolean updatePassword(String mobilePhone, String password) {
+        logger.info("修改密码手机号：{}",mobilePhone);
         Seller seller = sellerRepository.findByMobilePhone(mobilePhone);
+        logger.info(seller.toString());
         ByteSource salt = ByteSource.Util.bytes(seller.getMobilePhone());
         String md5 = new SimpleHash("MD5", password, salt, 2).toHex();
         seller.setPassword(md5);
@@ -135,9 +138,10 @@ public class SellerService {
         return true;
     }
 
-    public boolean updateBusinessMessage(String businessImage,
+    public Seller updateBusinessMessage(String businessImage,
                                          String businessLicense,
                                          String base64IdCard,
+                                         String foodLicense,
                                          HttpServletRequest request) {
         Long sellerId = JwtUtil.getSellerId(request);
         Seller seller = sellerRepository.findById(sellerId).get();
@@ -147,9 +151,21 @@ public class SellerService {
         if (StringUtils.isNotEmpty(businessLicense)){
             seller.setBusinessLicense(UrlConstant.IMAGE_URL+new FastDfsUtil().uploadBase64Image(businessLicense));
         }
+        if (StringUtils.isNotEmpty(foodLicense)){
+            seller.setFoodLicense(UrlConstant.IMAGE_URL+new FastDfsUtil().uploadBase64Image(foodLicense));
+        }
         if (StringUtils.isNotEmpty(base64IdCard)){
             seller.setIdCardPath(UrlConstant.IMAGE_URL+new FastDfsUtil().uploadBase64Image(base64IdCard));
         }
-        return true;
+        return seller;
+    }
+
+    public boolean uploadLogo(String logoBase64, Long sellerId) {
+        if (StringUtils.isNotEmpty(logoBase64)){
+            Seller seller = sellerRepository.findById(sellerId).get();
+            seller.setLogo(UrlConstant.IMAGE_URL+new FastDfsUtil().uploadBase64Image(logoBase64));
+            return true;
+        }
+        return false;
     }
 }

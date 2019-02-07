@@ -16,8 +16,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @Auther: luck_nhb
@@ -41,7 +40,7 @@ public class CollectionService {
     public boolean addCollection(Long sellerId, String goodsId, HttpServletRequest request) {
         Long userId = JwtUtil.getUserId(request);
         Collection collection = collectionRepository.findByUser_UserId(userId);
-        if (collection == null){
+        if (collection == null) {
             User user = userRepository.findById(userId).get();
             collection = new Collection();
             collection.setUser(user);
@@ -52,12 +51,12 @@ public class CollectionService {
         }
         Seller seller = null;
         Goods goods = null;
-        if (sellerId != null){
+        if (sellerId != null) {
             seller = sellerRepository.findById(sellerId).get();
             Set<Seller> sellers = collection.getSellers();
             sellers.add(seller);
             collection.setSellers(sellers);
-        }else {
+        } else {
             goods = goodsRepository.findById(goodsId).get();
             Set<Goods> goodsSet = collection.getGoods();
             goodsSet.add(goods);
@@ -67,26 +66,61 @@ public class CollectionService {
         return true;
     }
 
-    public boolean cancelCollection(Long sellerId, String goodsId, HttpServletRequest request) {
+    /**
+     * 谨慎  可能存在级联删除情况
+     * @param sellerId
+     * @param goodsId
+     * @param request
+     * @return
+     */
+    public boolean cancelCollection(Long[] sellerId, String[] goodsId, HttpServletRequest request) {
         Long userId = JwtUtil.getUserId(request);
         Collection collection = collectionRepository.findByUser_UserId(userId);
-        Seller seller = null;
-        Goods goods = null;
-        if (sellerId != null){
-            seller = sellerRepository.findById(sellerId).get();
+        if (sellerId != null && sellerId.length > 0) {
             Set<Seller> sellers = collection.getSellers();
-            sellers.remove(seller);
-            collection.setSellers(sellers);
-        }else {
-            goods = goodsRepository.findById(goodsId).get();
-            Set<Goods> goodsSet = collection.getGoods();
-            goodsSet.remove(goods);
-            collection.setGoods(goodsSet);
+            if (sellers != null && sellers.size() > 0) {
+                for (Long temp : sellerId){
+                    Iterator<Seller> iterator = sellers.iterator();
+                    while (iterator.hasNext()){
+                        Seller seller = iterator.next();
+                        if (seller.getSellerId().equals(temp)){
+                            iterator.remove();
+                        }
+                    }
+                }
+            }
+        }
+        if (goodsId != null && goodsId.length > 0) {
+            Set<Goods> goods = collection.getGoods();
+            if (goods != null && goods.size() > 0) {
+                for (String temp : goodsId) {
+                    Iterator<Goods> iterator = goods.iterator();
+                    while (iterator.hasNext()) {
+                        Goods removeGoods = iterator.next();
+                        if (removeGoods.getGoodsId().equals(temp)) {
+                            iterator.remove();
+                        }
+                    }
+                }
+            }
         }
         return true;
     }
 
     public Collection getCollection(Long userId) {
         return collectionRepository.findByUser_UserId(userId);
+    }
+
+    public String isCollectionByGoodsId(String goodsId, Long userId) {
+        Collection collection = collectionRepository.findByUser_UserId(userId);
+        if (collection != null && collection.getGoods() != null && collection.getGoods().size() > 0) {
+            Set<Goods> goodsSet = collection.getGoods();
+            for (Goods goods : goodsSet) {
+                if (goodsId.equals(goods.getGoodsId())) {
+                    return "已收藏";
+                }
+            }
+        }
+        return "false";
     }
 }

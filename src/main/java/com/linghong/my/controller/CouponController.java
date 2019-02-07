@@ -61,4 +61,14 @@ public class CouponController {
         Map<String,Object> result = couponService.getCouponDetail(couponId);
         return new Response(true,200 , result, "查询结果");
     }
+
+    /**
+     * 根据商品获取满减优惠
+     * @return
+     */
+    @GetMapping("/coupon/getCouponByGoodsId/{goodsId}")
+    public Response getCouponByGoodsId(@PathVariable String goodsId){
+        List<Coupon> coupons = couponService.getCouponByGoodsId(goodsId);
+        return new Response(true,200 , coupons, "查询结果");
+    }
 }

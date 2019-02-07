@@ -9,5 +9,6 @@ import java.util.List;
 
 public interface GoodsRepository extends JpaRepository<Goods,String>, JpaSpecificationExecutor<Goods> {
     List<Goods> findAllBySeller_SellerId(@Param("sellerId") Long sellerId);
+    List<Goods> findAllBySeller_SellerIdOrderByPriceAsc(@Param("sellerId") Long sellerId);
     List<Goods> findAllByGoodsType(@Param("goodsType") String goodsType);
 }

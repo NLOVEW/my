@@ -3,6 +3,7 @@ package com.linghong.my.controller;
 import com.linghong.my.dto.Response;
 import com.linghong.my.pojo.Collection;
 import com.linghong.my.service.CollectionService;
+import com.linghong.my.utils.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -45,8 +46,8 @@ public class CollectionController {
      * @return
      */
     @PostMapping("/collection/cancelCollection")
-    public Response cancelCollection(@RequestParam(required = false) Long sellerId,
-                                     @RequestParam(required = false) String goodsId,
+    public Response cancelCollection(@RequestParam(required = false) Long[] sellerId,
+                                     @RequestParam(required = false) String[] goodsId,
                                      HttpServletRequest request){
         boolean flag = collectionService.cancelCollection(sellerId,goodsId,request);
         if (flag){
@@ -64,5 +65,18 @@ public class CollectionController {
     public Response getCollection(@PathVariable Long userId){
         Collection collection = collectionService.getCollection(userId);
         return new Response(true, 200, collection, "数据");
+    }
+
+    /**
+     * 判断是否商品已被收藏
+     * @param goodsId
+     * @return
+     */
+    @GetMapping("/collection/isCollectionByGoodsId/{goodsId}")
+    public Response isCollectionByGoodsId(@PathVariable String goodsId,
+                                          HttpServletRequest request){
+        Long userId = JwtUtil.getUserId(request);
+        String flag = collectionService.isCollectionByGoodsId(goodsId,userId);
+        return new Response(true,200,flag,"判断的结果");
     }
 }

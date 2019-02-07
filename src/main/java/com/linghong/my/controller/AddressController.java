@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Auther: luck_nhb
@@ -44,7 +45,7 @@ public class AddressController {
      */
     @GetMapping("/address/getAllAddressByUserId/{userId}")
     public Response getAllAddressByUserId(@PathVariable Long userId){
-        List<Address> addresses = addressService.getAllAddressByUserId(userId);
+        Map<String, List<Address>> addresses = addressService.getAllAddressByUserId(userId);
         return new Response(true,200 ,addresses ,"地址列表" );
     }
 
@@ -67,4 +68,20 @@ public class AddressController {
         }
         return new Response(false,101 ,null ,"删除失败" );
     }
+
+    /**
+     * 设置默认地址
+     * @param addressId
+     * @param request
+     * @return
+     */
+    @PostMapping("/address/setDefault")
+    public Response setDefault(Long addressId,HttpServletRequest request){
+        boolean flag = addressService.setDefault(addressId,request);
+        if (flag){
+            return new Response(true,200 ,null ,"设置成功" );
+        }
+        return new Response(false,101 ,null ,"设置失败" );
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.linghong.my.service;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.linghong.my.bean.ShoppingCart;
 import com.linghong.my.constant.UrlConstant;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,14 +31,15 @@ import java.util.stream.Collectors;
  * @Description:
  */
 @Service
+@Transactional(rollbackOn = Exception.class)
 public class GoodsOrderService {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Value("{uupt.appId}")
+    @Value("${uupt.appId}")
     private String uuptAppId;
-    @Value("{uupt.appKey}")
+    @Value("${uupt.appKey}")
     private String uuptAppKey;
-    @Value("{uupt.openId}")
+    @Value("${uupt.openId}")
     private String uuptOpenId;
 
     @Resource
@@ -53,60 +56,96 @@ public class GoodsOrderService {
     private RabbitTemplate rabbitTemplate;
     @Resource
     private GoodsOrderRepository goodsOrderRepository;
+    @Resource
+    private UserCouponService userCouponService;
+    @Resource
+    private AddressRepository addressRepository;
 
     public boolean pushShoppingCart(Long userId, String goodsId, Integer number) {
+        logger.info("添加购物车商品Id:{}", goodsId);
         ShoppingCart cart = new ShoppingCart();
         Goods goods = goodsRepository.findById(goodsId).get();
         cart.setGoods(goods);
         cart.setNumber(number);
         //先检索redis中之前有无数据
-        List<Object> list = redisService.lGet(String.valueOf(userId), 0, -1);
-        if (list != null && list.size() > 0){//说明之前此用户购物车已经有东西
-            for (Object object : list){
-                ShoppingCart shoppingCart = (ShoppingCart) object;
+        String string = (String) redisService.get(String.valueOf(userId));
+        logger.info("string:{}", string);
+        if (string != null && !string.startsWith("[{")) {
+            string = "[" + string + "]";
+        }
+        logger.info("json:{}", string);
+        List<ShoppingCart> list = JSON.parseArray(string, ShoppingCart.class);
+        List<ShoppingCart> result = new ArrayList<>();
+        if (list != null && list.size() > 0) {//说明之前此用户购物车已经有东西
+            int temp = 0;
+            for (ShoppingCart object : list) {
+                logger.info("购物车：{}", object);
                 //如果有相同的添加数据
-                if (shoppingCart.getGoods().getGoodsId().equals(goodsId)){
-                    shoppingCart.setNumber(shoppingCart.getNumber().intValue() + number.intValue());
-                    Collections.replaceAll(list,object ,shoppingCart );
+                if (object.getGoods().getGoodsId().equals(goodsId)) {
+                    ShoppingCart shoppingCart = new ShoppingCart();
+                    shoppingCart.setGoods(object.getGoods());
+                    shoppingCart.setNumber(object.getNumber().intValue() + number.intValue());
+                    result.add(shoppingCart);
+                    temp = 1;
+                } else {
+                    result.add(object);
                 }
             }
-            list.add(cart);
-        }else {
+            if (temp == 0) {
+                result.add(cart);
+            }
+            redisService.set(String.valueOf(userId), JSON.toJSONString(result));
+        } else {
             List<ShoppingCart> carts = new ArrayList<>();
             carts.add(cart);
-            redisService.lSet(String.valueOf(userId),carts);
+            redisService.set(String.valueOf(userId), JSON.toJSONString(carts));
         }
         return true;
     }
 
-    public List<Object> cancelShoppingCart(Long userId,String[] goodsIds) {
-        List<Object> objects = redisService.lGet(String.valueOf(userId), 0, -1);
-        Iterator<Object> it = objects.iterator();
-        while(it.hasNext()){
-            Object o = it.next();
-            ShoppingCart c = (ShoppingCart) o;
-            for (String id : goodsIds){
-                if (c.getGoods().getGoodsId().equals(id)){
-                    it.remove();
+    public List<ShoppingCart> cancelShoppingCart(Long userId, String[] goodsIds) {
+        String string = (String) redisService.get(String.valueOf(userId));
+        if (string != null) {
+            if (!string.startsWith("[{")) {
+                string = "[" + string + "]";
+            }
+            List<ShoppingCart> list = JSON.parseArray(string, ShoppingCart.class);
+            Iterator<ShoppingCart> it = list.iterator();
+            while (it.hasNext()) {
+                ShoppingCart o = it.next();
+                for (String id : goodsIds) {
+                    if (o.getGoods().getGoodsId().equals(id)) {
+                        it.remove();
+                    }
                 }
             }
+            redisService.set(String.valueOf(userId), JSON.toJSONString(list));
+            return list;
         }
-        redisService.lSet(String.valueOf(userId),objects );
-        return objects;
+        return null;
     }
 
-    public List<Object> getShoppingCartByUserId(Long userId) {
-        List<Object> list = redisService.lGet(String.valueOf(userId), 0, -1);
+    public List<ShoppingCart> getShoppingCartByUserId(Long userId) {
+        String string = (String) redisService.get(String.valueOf(userId));
+        if (string != null && !string.startsWith("[{")) {
+            string = "[" + string + "]";
+        }
+        List<ShoppingCart> list = JSON.parseArray(string, ShoppingCart.class);
         return list;
     }
 
-    public Map<String,Object> settleAccounts(List<ShoppingCart> carts, HttpServletRequest request) {
+    public Map<String, Object> settleAccounts(List<ShoppingCart> carts, HttpServletRequest request) {
+        carts.stream().forEach(cart -> {
+            logger.info("结算传入的参数：{}", cart.toString());
+        });
         Long userId = JwtUtil.getUserId(request);
         User user = userRepository.findById(userId).get();
-        Map<String,Object> result = new HashedMap();
+        Map<String, Object> result = new HashedMap();
         BigDecimal price = new BigDecimal(0);
+        List<GoodsOrder> resultOrder = new ArrayList<>();
+        Set<Coupon> coupons = new HashSet<>();
         //循环遍历数据 配送费 优惠券 商品原来价格
-        for (ShoppingCart cart : carts){
+        for (ShoppingCart cart : carts) {
             //创建订单
             GoodsOrder goodsOrder = new GoodsOrder();
             goodsOrder.setGoodsOrderId(IDUtil.getOrderId());
@@ -115,7 +154,7 @@ public class GoodsOrderService {
             List<Coupon> all = couponRepository.findAllBySeller_SellerId(cart.getGoods().getSeller().getSellerId());
             //排除过期的优惠券
             all = all.stream().filter(coupon -> {
-                if (coupon.getStartTime().compareTo(new Date()) <= 0 && coupon.getEndTime().compareTo(new Date()) >= 0){
+                if (coupon.getStartTime().compareTo(new Date()) <= 0 && coupon.getEndTime().compareTo(new Date()) >= 0) {
                     return true;
                 }
                 return false;
@@ -123,38 +162,46 @@ public class GoodsOrderService {
             //对满减策略进行排序
             all.sort(Comparator.comparing(Coupon::getSubPrice));
             BigDecimal totalPrice = new BigDecimal(String.valueOf(cart.getGoods().getPrice().multiply(new BigDecimal(cart.getNumber().intValue()))));
+            logger.info("totalPrice:{}", totalPrice.toPlainString());
             //设置订单原来的总价格
             goodsOrder.setTotalPrice(totalPrice);
             //设置订单的满减集合
-            Set<Coupon> coupons = new HashSet<>();
             //循环遍历进行满减优惠操作  只要符合条件就进行减免
-            for (Coupon coupon : all){
+            for (Coupon coupon : all) {
                 BigDecimal requirementPrice = coupon.getRequirementPrice();
-                if (totalPrice.compareTo(requirementPrice) >= 0){
+                if (totalPrice.compareTo(requirementPrice) >= 0) {
                     coupons.add(coupon);
+                    //使用优惠卷
+                    userCouponService.deleteCoupon(coupon.getCouponId());
                     totalPrice = totalPrice.subtract(coupon.getSubPrice());
+                    logger.info("满减后：{}", totalPrice);
                 }
             }
-            price.add(totalPrice);
+            price = price.add(totalPrice);
+            logger.info("当前商品价格总额:{}", price.toPlainString());
             //TODO 获取UU跑腿订单价格
+            logger.info("address:{}", cart.getGoods().getSeller().getAddress());
+            logger.info("city:{}", cart.getGoods().getSeller().getCity());
             JSONObject jsonObject = UUPTUtil.getOrderPrice(goodsOrder.getGoodsOrderId(),
                     cart.getGoods().getSeller().getAddress(), cart.getAddress().getExpressAddress(),
                     cart.getGoods().getSeller().getCity() + "市", uuptOpenId, uuptAppId, uuptAppKey);
-            logger.info("计算配送费：{}",jsonObject);
+            logger.info("计算配送费：{}", jsonObject);
             //todo 设置配送费
             goodsOrder.setExpressPrice(new BigDecimal((String) jsonObject.get("need_paymoney")));
             goodsOrder.setCoupons(coupons);
             goodsOrder.setNumber(cart.getNumber());
             goodsOrder.setGoods(cart.getGoods());
             goodsOrder.setCreateTime(new Date());
-            result.put(cart.getGoods().getGoodsId(), goodsOrder);
+            //result.put(cart.getGoods().getGoodsId(), goodsOrder);
+            resultOrder.add(goodsOrder);
+            redisService.set(goodsOrder.getGoodsOrderId(), JSON.toJSONString(goodsOrder));
         }
         //相同商家配送费合一
         Map<Seller, List<ShoppingCart>> collect = carts.stream().collect(Collectors.groupingBy(cart -> {
             return cart.getGoods().getSeller();
         }));
         BigDecimal expressPrice = new BigDecimal(0);
-        for (Map.Entry<Seller,List<ShoppingCart>> entry : collect.entrySet()){
+        for (Map.Entry<Seller, List<ShoppingCart>> entry : collect.entrySet()) {
             //TODO 获取UU跑腿订单价格
             JSONObject jsonObject = UUPTUtil.getOrderPrice(IDUtil.getId(),
                     entry.getValue().get(0).getGoods().getSeller().getAddress(), entry.getValue().get(0).getAddress().getExpressAddress(),
@@ -162,30 +209,128 @@ public class GoodsOrderService {
             //累加跑腿费
             expressPrice = expressPrice.add(new BigDecimal((String) jsonObject.get("need_paymoney")));
         }
-        result.put("配送费",expressPrice );
-        result.put("总价",price.add(expressPrice) );
+        result.put("可使用的满减活动", coupons);
+        result.put("配送费", expressPrice);
+        result.put("所有商品订单", resultOrder);
+        result.put("总价", price.add(expressPrice));
         return result;
     }
 
-    public String submitOrder(List<GoodsOrder> goodsOrders) {
+
+    public Map<String, Object> updateSettleAccounts(Long addressId, String[] goodsIds) {
+        Address address = addressRepository.findById(addressId).get();
+        Map<String, Object> result = new HashedMap();
+        BigDecimal price = new BigDecimal(0);
+        List<GoodsOrder> resultOrder = new ArrayList<>();
+        Set<Coupon> coupons = new HashSet<>();
+        List<GoodsOrder> orders = new ArrayList<>();
+        for (String goodsId : goodsIds){
+            String goodsString = (String) redisService.get(goodsId);
+            GoodsOrder goodsOrder = JSON.parseObject(goodsString, GoodsOrder.class);
+            //重新设置收货地址
+            goodsOrder.setAddress(address);
+            //查询所有满减
+            List<Coupon> all = couponRepository.findAllBySeller_SellerId(goodsOrder.getGoods().getSeller().getSellerId());
+            //排除过期的优惠券
+            all = all.stream().filter(coupon -> {
+                if (coupon.getStartTime().compareTo(new Date()) <= 0 && coupon.getEndTime().compareTo(new Date()) >= 0) {
+                    return true;
+                }
+                return false;
+            }).collect(Collectors.toList());
+            //对满减策略进行排序
+            all.sort(Comparator.comparing(Coupon::getSubPrice));
+            BigDecimal totalPrice = new BigDecimal(String.valueOf(goodsOrder.getGoods().getPrice().multiply(new BigDecimal(goodsOrder.getNumber().intValue()))));
+            logger.info("totalPrice:{}", totalPrice.toPlainString());
+            //设置订单原来的总价格
+            goodsOrder.setTotalPrice(totalPrice);
+            //设置订单的满减集合
+            //循环遍历进行满减优惠操作  只要符合条件就进行减免
+            for (Coupon coupon : all) {
+                BigDecimal requirementPrice = coupon.getRequirementPrice();
+                if (totalPrice.compareTo(requirementPrice) >= 0) {
+                    coupons.add(coupon);
+                    //使用优惠卷
+                    userCouponService.deleteCoupon(coupon.getCouponId());
+                    totalPrice = totalPrice.subtract(coupon.getSubPrice());
+                    logger.info("满减后：{}", totalPrice);
+                }
+            }
+            price = price.add(totalPrice);
+            logger.info("当前商品价格总额:{}", price.toPlainString());
+            //TODO 获取UU跑腿订单价格
+            logger.info("address:{}", goodsOrder.getGoods().getSeller().getAddress());
+            logger.info("city:{}", goodsOrder.getGoods().getSeller().getCity());
+            JSONObject jsonObject = UUPTUtil.getOrderPrice(goodsOrder.getGoodsOrderId(),
+                    goodsOrder.getGoods().getSeller().getAddress(), goodsOrder.getAddress().getExpressAddress(),
+                    goodsOrder.getGoods().getSeller().getCity() + "市", uuptOpenId, uuptAppId, uuptAppKey);
+            logger.info("计算配送费：{}", jsonObject);
+            //todo 设置配送费
+            goodsOrder.setExpressPrice(new BigDecimal((String) jsonObject.get("need_paymoney")));
+            goodsOrder.setCoupons(coupons);
+            goodsOrder.setCreateTime(new Date());
+            orders.add(goodsOrder);
+            resultOrder.add(goodsOrder);
+            redisService.set(goodsOrder.getGoodsOrderId(), JSON.toJSONString(goodsOrder));
+        }
+
+        //相同商家配送费合一
+        Map<Long, List<GoodsOrder>> listMap = orders.stream().collect(Collectors.groupingBy(goodsOrder -> {
+            return goodsOrder.getGoods().getSeller().getSellerId();
+        }));
+        BigDecimal expressPrice = new BigDecimal(0);
+        for (Map.Entry<Long,List<GoodsOrder>> entry : listMap.entrySet()){
+            //TODO 获取UU跑腿订单价格
+            JSONObject jsonObject = UUPTUtil.getOrderPrice(IDUtil.getId(),
+                    entry.getValue().get(0).getGoods().getSeller().getAddress(), entry.getValue().get(0).getAddress().getExpressAddress(),
+                    entry.getValue().get(0).getGoods().getSeller().getCity() + "市", uuptOpenId, uuptAppId, uuptAppKey);
+            //累加跑腿费
+            expressPrice = expressPrice.add(new BigDecimal((String) jsonObject.get("need_paymoney")));
+        }
+        result.put("可使用的满减活动", coupons);
+        result.put("配送费", expressPrice);
+        result.put("所有商品订单", resultOrder);
+        result.put("总价", price.add(expressPrice));
+        return result;
+    }
+
+    public String submitOrder(String[] goodsOrdersIds,String comment) {
         String id = IDUtil.getOrderId();
+        List<GoodsOrder> goodsOrders = new ArrayList<>();
+        logger.info("循环遍历id:{}", Arrays.toString(goodsOrdersIds));
+        for (String orderId : goodsOrdersIds){
+            String temp = (String) redisService.get(orderId);
+            GoodsOrder goodsOrder = JSON.parseObject(temp, GoodsOrder.class);
+            goodsOrders.add(goodsOrder);
+        }
         goodsOrders.stream().forEach(goodsOrder -> {
+            goodsOrder.setComment(comment);
             goodsOrder.setRedisId(id);
         });
-        redisService.lSet(id,goodsOrders );
+        redisService.set(id, JSON.toJSONString(goodsOrders));
         //删除购物车
-        List<Object> objects = redisService.lGet(String.valueOf(goodsOrders.get(0).getUser().getUserId()), 0, -1);
-        Iterator<Object> it = objects.iterator();
-        while(it.hasNext()){
-            Object o = it.next();
-            ShoppingCart c = (ShoppingCart) o;
-            for (GoodsOrder order : goodsOrders){
-                if (c.getGoods().getGoodsId().equals(order.getGoods().getGoodsId())){
+        String string = (String) redisService.get(String.valueOf(goodsOrders.get(0).getUser().getUserId()));
+        if (string != null && !string.startsWith("[{")) {
+            string = "[" + string + "]";
+        }
+        int temp = 0;
+        List<ShoppingCart> list = JSON.parseArray(string, ShoppingCart.class);
+        int sum = list.size();
+        Iterator<ShoppingCart> it = list.iterator();
+        while (it.hasNext()) {
+            ShoppingCart o = it.next();
+            for (GoodsOrder order : goodsOrders) {
+                if (o.getGoods().getGoodsId().equals(order.getGoods().getGoodsId())) {
+                    temp++;
                     it.remove();
                 }
             }
         }
-        redisService.lSet(String.valueOf(goodsOrders.get(0).getUser().getUserId()),objects );
+        if(temp == sum){
+            redisService.del(String.valueOf(goodsOrders.get(0).getUser().getUserId()));
+        }else {
+            redisService.set(String.valueOf(goodsOrders.get(0).getUser().getUserId()), JSON.toJSONString(list));
+        }
         return id;
     }
 
@@ -195,25 +340,28 @@ public class GoodsOrderService {
 
     public boolean cancelOrder(String goodsOrderId) {
         GoodsOrder goodsOrder = goodsOrderRepository.findById(goodsOrderId).get();
-        if (goodsOrder.getStatus().intValue() >= 2){
+        if (goodsOrder.getStatus().intValue() >= 2) {
             return false;
         }
         goodsOrder.setStatus(6);
         //修改redis中缓存的状态
-        List<Object> objects = redisService.lGet(goodsOrder.getRedisId(), 0, -1);
-        for (Object object : objects){
-            GoodsOrder temp = (GoodsOrder) object;
-            if (temp.getGoodsOrderId().equals(goodsOrderId)){
+        String string = (String) redisService.get(String.valueOf(goodsOrder.getRedisId()));
+        if (string != null && !string.startsWith("[{")) {
+            string = "[" + string + "]";
+        }
+        List<GoodsOrder> list = JSON.parseArray(string, GoodsOrder.class);
+        for (GoodsOrder temp : list) {
+            if (temp.getGoodsOrderId().equals(goodsOrderId)) {
                 temp.setStatus(6);
             }
         }
-        redisService.lSet(goodsOrder.getRedisId(), objects);
+        redisService.set(goodsOrder.getRedisId(), JSON.toJSONString(list));
         return true;
     }
 
     public JSONObject getExpress(String goodsOrderId) {
         GoodsOrder goodsOrder = goodsOrderRepository.findById(goodsOrderId).get();
-        return UUPTUtil.getOrderDetail(goodsOrder.getExpressId(), uuptOpenId,uuptAppId ,uuptAppKey );
+        return UUPTUtil.getOrderDetail(goodsOrder.getExpressId(), uuptOpenId, uuptAppId, uuptAppKey);
     }
 
     public List<GoodsOrder> findAllOrderByUserId(Long userId) {
@@ -231,8 +379,8 @@ public class GoodsOrderService {
 
     public boolean dealCancelOrder(String goodsOrderId, Integer status) {
         GoodsOrder goodsOrder = goodsOrderRepository.findById(goodsOrderId).get();
-        if (status.equals(7)){//同意取消订单
-            rabbitTemplate.convertAndSend("order","backPrice" ,goodsOrder);
+        if (status.equals(7)) {//同意取消订单
+            rabbitTemplate.convertAndSend("order", "backPrice", goodsOrder);
         }
         goodsOrder.setStatus(status);
         return true;
@@ -244,13 +392,13 @@ public class GoodsOrderService {
         GoodsOrder goodsOrder = goodsOrderRepository.findById(orderId).get();
         discussMessage.setFromUser(goodsOrder.getUser());
         discussMessage.setCreateTime(new Date());
-        if (base64Images != null){
+        if (base64Images != null) {
             Set<Image> images = new HashSet<>();
             String[] split = base64Images.split("。");
-            for (String result : split){
+            for (String result : split) {
                 Image image = new Image();
                 image.setCreateTime(new Date());
-                image.setPath(UrlConstant.IMAGE_URL+new FastDfsUtil().uploadBase64Image(result));
+                image.setPath(UrlConstant.IMAGE_URL + new FastDfsUtil().uploadBase64Image(result));
                 images.add(image);
             }
             discussMessage.setImages(images);
@@ -260,5 +408,24 @@ public class GoodsOrderService {
         goodsOrder.setDiscussMessages(discussMessages);
         return true;
     }
+
+    public List<ShoppingCart> testJson() {
+        List<Address> addressList = addressRepository.findAllByUser_UserId(3L);
+        String string = (String) redisService.get("3");
+        List<ShoppingCart> list = null;
+        if (string != null) {
+            if (!string.startsWith("[{")) {
+                string = "[" + string + "]";
+            }
+            list = JSON.parseArray(string, ShoppingCart.class);
+            Iterator<ShoppingCart> it = list.iterator();
+            while (it.hasNext()) {
+                ShoppingCart o = it.next();
+                o.setAddress(addressList.get(0));
+            }
+        }
+        return list;
+    }
+
 
 }

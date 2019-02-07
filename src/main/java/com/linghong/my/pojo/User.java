@@ -29,6 +29,7 @@ public class User implements Serializable {
     private String idCardNumber;//身份证号
     private String idCardPath;//身份证照片
     private OpenUser openUser;
+    private String coordinate;//坐标
     private Date createTime;
 
 
@@ -146,6 +147,14 @@ public class User implements Serializable {
 
     public void setUserName(String userName) {
         this.userName = userName;
+    }
+
+    public String getCoordinate() {
+        return coordinate;
+    }
+
+    public void setCoordinate(String coordinate) {
+        this.coordinate = coordinate;
     }
 
     @Override

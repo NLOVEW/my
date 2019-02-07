@@ -28,6 +28,24 @@ public class Goods implements Serializable {
     private Date updateTime;
     private Date createTime;
 
+    public Goods() {
+    }
+
+    public Goods(String goodsId, Seller seller, String title, String goodsType, BigDecimal price, String introduce, Integer number, Integer salesVolume, Set<Image> images, Integer status, Date updateTime, Date createTime) {
+        this.goodsId = goodsId;
+        this.seller = seller;
+        this.title = title;
+        this.goodsType = goodsType;
+        this.price = price;
+        this.introduce = introduce;
+        this.number = number;
+        this.salesVolume = salesVolume;
+        this.images = images;
+        this.status = status;
+        this.updateTime = updateTime;
+        this.createTime = createTime;
+    }
+
     @Id
     @Column(name = "goodsId",length = 32,unique = true)
     public String getGoodsId() {

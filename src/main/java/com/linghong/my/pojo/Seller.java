@@ -26,15 +26,18 @@ public class Seller implements Serializable {
     private String sellerName;//商家店铺名
     private String businessImage;//店铺照片
     private String businessLicense;//营业执照
+    private String foodLicense;//产品生成许可
+    private String logo;//logo
     private String city;//所在城市 必填
     private String address;//详细地址
     private String companyType;//公司类型
-    private Date startTime;//开始营业时间
-    private Date endTime;//结束营业时间
+    private String startTime;//开始营业时间
+    private String endTime;//结束营业时间
     private String introduce;//公司简介
     private Boolean businessStatus;//营业状态
     private Boolean auth;//是否认证
     private Date createTime;//创建时间
+    private String coordinate;
 
     @Id
     @GeneratedValue
@@ -110,19 +113,19 @@ public class Seller implements Serializable {
         this.companyType = companyType;
     }
 
-    public Date getStartTime() {
+    public String getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(Date startTime) {
+    public void setStartTime(String startTime) {
         this.startTime = startTime;
     }
 
-    public Date getEndTime() {
+    public String getEndTime() {
         return endTime;
     }
 
-    public void setEndTime(Date endTime) {
+    public void setEndTime(String endTime) {
         this.endTime = endTime;
     }
 
@@ -188,6 +191,30 @@ public class Seller implements Serializable {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public String getCoordinate() {
+        return coordinate;
+    }
+
+    public void setCoordinate(String coordinate) {
+        this.coordinate = coordinate;
+    }
+
+    public String getFoodLicense() {
+        return foodLicense;
+    }
+
+    public void setFoodLicense(String foodLicense) {
+        this.foodLicense = foodLicense;
+    }
+
+    public String getLogo() {
+        return logo;
+    }
+
+    public void setLogo(String logo) {
+        this.logo = logo;
     }
 
     @Override

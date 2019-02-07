@@ -86,6 +86,20 @@ public class GoodsController {
     }
 
     /**
+     * 商品再次上架
+     * @param goodsId
+     * @return
+     */
+    @PostMapping("/goods/upGoods")
+    public Response upGoods(String goodsId){
+        boolean flag = goodsService.upGoods(goodsId);
+        if (flag){
+            return new Response(true,200 ,null ,"删除成功" );
+        }
+        return new Response(false,101 ,null ,"删除失败" );
+    }
+
+    /**
      * 根据商家Id 获取商家商品列表  结果会有分类  上架类、下架类、已删除类
      * @param sellerId
      * @return
@@ -108,6 +122,16 @@ public class GoodsController {
     }
 
     //todo -------------------商品检索---------------------
+
+    /**
+     * 按照商品类型自动分类
+     * @return
+     */
+    @GetMapping("/goods/getGoodsByType")
+    public Response getGoodsByType(){
+        Map<String, List<Goods>> goods = goodsService.getGoodsByType();
+        return new Response(true,200 ,goods ,"查询结果" );
+    }
 
     /**
      * 根据城市  商品类型查询
@@ -138,7 +162,7 @@ public class GoodsController {
      * @param userId
      * @return
      */
-    @GetMapping("/goods/getLoveGoods")
+    @GetMapping("/goods/getLoveGoods/{userId}")
     public Response getLoveGoods(@PathVariable Long userId){
         List<Goods> goods = goodsService.getLoveGoods(userId);
         return new Response(true,200 ,goods ,"查询结果" );
@@ -152,5 +176,46 @@ public class GoodsController {
     public Response getGoodsByAuto(){
         List<Goods> goods = goodsService.getGoodsByAuto();
         return new Response(true,200 ,goods ,"查询结果" );
+    }
+
+    /**
+     * 限时购
+     * @return
+     */
+    @GetMapping("/goods/limitShoppingByTime")
+    public Response limitShoppingByTime(){
+        List<Goods> goods = goodsService.limitShoppingByTime();
+        return new Response(true,200 ,goods ,"限时购" );
+    }
+
+    /**
+     * 店内推荐
+     * @param sellerId
+     * @return
+     */
+    @GetMapping("/goods/getLoveGoodsBySellerId/{sellerId}")
+    public Response getLoveGoodsBySellerId(@PathVariable Long sellerId){
+        List<Goods> goods = goodsService.getLoveGoodsBySellerId(sellerId);
+        return new Response(true,200 ,goods ,"店内推荐" );
+    }
+
+    /**
+     * 优质好货
+     * @return
+     */
+    @GetMapping("/goods/getGoodsByGoodGoods")
+    public Response getGoodsByGoodGoods(){
+        List<Goods> goods = goodsService.getGoodsByGoodGoods();
+        return new Response(true,200 ,goods ,"优质好货" );
+    }
+
+    /**
+     * 育儿必备
+     * @return
+     */
+    @GetMapping("/goods/getGoodsByChild")
+    public Response getGoodsByChild(){
+        List<Goods> goods = goodsService.getGoodsByChild();
+        return new Response(true,200 ,goods ,"育儿必备" );
     }
 }

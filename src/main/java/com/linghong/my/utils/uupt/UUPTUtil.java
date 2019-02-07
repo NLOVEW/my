@@ -2,6 +2,8 @@ package com.linghong.my.utils.uupt;
 
 import com.alibaba.fastjson.JSONObject;
 import com.linghong.my.utils.IDUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @Auther: luck_nhb
@@ -10,6 +12,7 @@ import com.linghong.my.utils.IDUtil;
  * @Description:
  */
 public class UUPTUtil {
+    private static Logger logger = LoggerFactory.getLogger(UUPTUtil.class);
 
     /**
      * 发布订单
@@ -48,6 +51,7 @@ public class UUPTUtil {
         mydic.add("pubUserMobile", pubuserMobile);
         mydic.add("sign", UUCommonFun.CreateMd5Sign(mydic,appKey));
         String result = UUHttpRequestHelper.HttpPost(ApiConfig.AddOrderUrl, mydic);
+        logger.info(result);
         return JSONObject.parseObject(result);
     }
 
@@ -108,19 +112,29 @@ public class UUPTUtil {
     public static JSONObject getOrderPrice(String originId,String formAddress,String toAddress,String city,String openId,String appId,String appKey) {
         Dictionary<String, String> mydic = new Dictionary<>();
         mydic.add("origin_id", originId);
+        logger.info("origin_id:{}",mydic.get("origin_id"));
         mydic.add("appid", appId);
+        logger.info("appid:{}",mydic.get("appid"));
         mydic.add("nonce_str", UUCommonFun.NewGuid());
+        logger.info("nonce_str:{}",mydic.get("nonce_str"));
         mydic.add("timestamp", UUCommonFun.getTimeStamp());
+        logger.info("timestamp:{}",mydic.get("timestamp"));
         mydic.add("openid", openId);
+        logger.info("openid:{}",mydic.get("openid"));
         mydic.add("send_type", "0");
+        logger.info("send_type:{}",mydic.get("send_type"));
         mydic.add("from_address", formAddress);
+        logger.info("from_address:{}",mydic.get("from_address"));
         mydic.add("to_address", toAddress);
+        logger.info("to_address:{}",mydic.get("to_address"));
         mydic.add("city_name", city);
+        logger.info("city_name:{}",mydic.get("city_name"));
         mydic.add("from_lng", "0");
         mydic.add("from_lat", "0");
         mydic.add("to_lng", "0");
         mydic.add("to_lat", "0");
         mydic.add("sign", UUCommonFun.CreateMd5Sign(mydic, appKey));
+        logger.info("sign:{}",mydic.get("sign"));
         String result = UUHttpRequestHelper.HttpPost(ApiConfig.GetOrderPriceUrl, mydic);
         return JSONObject.parseObject(result);
     }

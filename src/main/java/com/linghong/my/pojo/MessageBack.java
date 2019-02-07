@@ -17,6 +17,7 @@ public class MessageBack implements Serializable {
     private String messageType;
     private String message;
     private String imagePath;
+    private String mobilePhone;
     private Date pushTime;
 
     @Id
@@ -61,4 +62,11 @@ public class MessageBack implements Serializable {
         this.pushTime = pushTime;
     }
 
+    public String getMobilePhone() {
+        return mobilePhone;
+    }
+
+    public void setMobilePhone(String mobilePhone) {
+        this.mobilePhone = mobilePhone;
+    }
 }

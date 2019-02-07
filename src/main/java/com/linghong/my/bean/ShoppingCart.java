@@ -16,6 +16,15 @@ public class ShoppingCart implements Serializable {
     private Integer number;
     private Address address;
 
+    public ShoppingCart() {
+    }
+
+    public ShoppingCart(Goods goods, Integer number, Address address) {
+        this.goods = goods;
+        this.number = number;
+        this.address = address;
+    }
+
     public Goods getGoods() {
         return goods;
     }
@@ -38,5 +47,14 @@ public class ShoppingCart implements Serializable {
 
     public void setAddress(Address address) {
         this.address = address;
+    }
+
+    @Override
+    public String toString() {
+        return "ShoppingCart{" +
+                "goods=" + goods +
+                ", number=" + number +
+                ", address=" + address +
+                '}';
     }
 }

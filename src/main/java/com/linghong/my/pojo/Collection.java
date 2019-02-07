@@ -39,7 +39,7 @@ public class Collection implements Serializable {
         this.user = user;
     }
 
-    @OneToMany(cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.MERGE,fetch = FetchType.LAZY)
     @JoinColumn(name = "collectionId")
     public Set<Seller> getSellers() {
         return sellers;
@@ -49,7 +49,7 @@ public class Collection implements Serializable {
         this.sellers = sellers;
     }
 
-    @OneToMany(cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.MERGE,fetch = FetchType.LAZY)
     @JoinColumn(name = "collectionId")
     public Set<Goods> getGoods() {
         return goods;

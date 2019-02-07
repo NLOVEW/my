@@ -15,9 +15,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -74,5 +72,20 @@ public class CouponService {
         }
         result.put("优惠券信息",coupon );
         return result;
+    }
+
+    public List<Coupon> getCouponByGoodsId(String goodsId) {
+        Optional<Goods> goods = goodsRepository.findById(goodsId);
+        List<Coupon> all = couponRepository.findAllBySeller_SellerId(goods.get().getSeller().getSellerId());
+        List<Coupon> coupons = new ArrayList<>();
+        for (Coupon coupon : all){
+            for (String goodsIds : coupon.getGoodsIds()){
+                if (goodsIds.equals(goodsId)){
+                    coupons.add(coupon);
+                    break;
+                }
+            }
+        }
+        return coupons;
     }
 }
